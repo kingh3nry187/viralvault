@@ -1,83 +1,110 @@
-# ViralVault — GitHub Pages viral-video website
+# ViralVault — live admin publishing (GitHub Pages + Supabase)
 
-An original, dark-themed, WorldStar-inspired **manual video curation** website built with plain HTML, CSS, and JavaScript. No framework, build step, database, API key, or server needed for browsing.
+A WorldStar-inspired (not affiliated) viral video website for **YouTube, Reddit, Facebook, and TikTok links**. Embedded playback uses the platforms' players, subject to platform permissions.
 
-## Features
+## What's new in v2
 
-- Responsive homepage with featured video cards and sidebar
-- YouTube, TikTok, Reddit, and public Facebook video embeds
-- Video detail pages, category filters, title search, latest / top picks
-- Manual link submission, local management and downloadable JSON export
-- Optional visitor-submission inbox via Formspree
-- GitHub Pages deployment workflow already included
+- **`admin.html`**: secure owner login and direct publishing, editing, deleting, starring/featuring, and draft management.
+- **Supabase database**: published videos are visible to everyone without GitHub commits. Most changes appear when a viewer refreshes the site.
+- **Row-Level Security (RLS)**: visitors can only read published videos; only explicitly authorized admin accounts can write.
+- **GitHub Pages** continues to host the front end free of a dedicated web server.
+- Optional visitor link submissions via Formspree (review only, never auto-publish).
 
-## Publish to GitHub Pages
+> **Before you configure Supabase, the website remains in legacy JSON demo mode** (`data/videos.json`). The live publishing feature requires completing the setup below.
 
-1. Create a GitHub account at https://github.com/signup if needed.
-2. Create a **new public repository** named `viralvault` (or any name).
-3. Upload the contents of this folder to the **root** of the repository. Include the `.github` folder and `.nojekyll`. You can do this using **Add file → Upload files** on GitHub, or clone the repository and copy these files.
-4. Go to **Settings → Pages** and select **Source: GitHub Actions**.
-5. Push/commit to `main`; the included `.github/workflows/deploy.yml` publishes the site. Your site will be at `https://YOUR-USERNAME.github.io/viralvault/` (replace placeholders).
+## Step 1 — Upload new files to your existing GitHub repo
 
-You can test locally by running `python -m http.server 8000` from the folder, then opening `http://localhost:8000`. Opening `index.html` directly as `file://` prevents the browser from loading `data/videos.json`.
+1. Open `https://github.com/kingh3nry187/viralvault` or your repository URL.
+2. Extract this ZIP file on your computer. Upload the **contents** of the `viralvault-github` folder (not the parent folder) into the root of your repository, preserving subfolders.
+3. Replace the original matching files. Include the new files `admin.html`, `assets/admin.js`, `assets/admin.css`, and `supabase/schema.sql`.
+4. Commit the changes to `main`.
+5. In GitHub **Settings → Pages**, select **Deploy from GitHub Actions** if not already selected. The included workflow in `.github/workflows/deploy.yml` will publish the site.
 
-## Publish videos (manual editorial workflow)
+## Step 2 — Create a Supabase project
 
-1. Open the live site and select **Submit Video**.
-2. Paste a supported video permalink, enter an accurate title, and choose a category.
-3. With the default configuration, the video is saved in **your current browser only** (localStorage). **Visitors cannot see it yet.**
-4. Open **Manage videos** and click **Download videos.json**.
-5. On GitHub, replace **`data/videos.json`** with the downloaded file and commit the change.
-6. GitHub Actions redeploys the site. Now everyone sees the new video.
+1. Go to https://supabase.com/ and create a project. The free tier may have limits or pauses; check their current plan details.
+2. Open **SQL Editor → New query**. Copy all of `supabase/schema.sql` into the editor and run it **once**.
+3. Open **Authentication → Users**. Create your owner user with an email and strong password. If the dashboard offers an "Auto Confirm" option for this owner user, use it appropriately, or complete email verification.
+4. **IMPORTANT — grant the owner account admin privileges.** In Supabase SQL Editor, run this SQL, replacing the placeholder with the actual email for the user you just created (keep the real email in the private SQL editor only, not on GitHub):
 
-**Important:** `/manage` is NOT an authenticated admin area. It is a local convenience editor. Published content is controlled by GitHub write access; don't store secrets in this repository.
-
-To remove a previously published video, delete its object from `data/videos.json` on GitHub (or edit and upload a corrected JSON file). To feature videos, set `"featured": true` on the desired objects.
-
-## Accept submissions from other site visitors (optional)
-
-A static GitHub Pages site cannot securely collect submissions from visitors on its own. You can use a third-party form inbox:
-
-1. Create a form at https://formspree.io/ (service pricing/limits may change).
-2. In `assets/config.js`, set:
-
-```js
-window.VIRALVAULT_CONFIG = { formspreeEndpoint: 'https://formspree.io/f/YOUR_FORM_ID' };
+```sql
+insert into public.admin_users(user_id)
+select id from auth.users where email = 'YOUR_ADMIN_EMAIL@example.com'
+on conflict (user_id) do nothing;
 ```
 
-3. Commit. Visitors' submissions will go to the configured Formspree form inbox **for your review**, instead of appearing live on the site. You then add approved submissions to `data/videos.json` (or use the owner-side form with Formspree disabled). No automatic publishing is included. Test the form after setup.
+The insert should affect **one** row. If it affects zero, double-check that the Auth user was created and the email matches.
 
-## Accepted video URLs
+5. Optional: In Authentication settings, disable public email signups if this is an owner-only system. Even if signups are enabled, other users cannot publish because they are not in `admin_users`.
 
-- YouTube: `youtube.com/watch?v=ID`, `youtube.com/shorts/ID`, `youtu.be/ID`
-- TikTok: full `tiktok.com/@username/video/VIDEO_ID` URL (short redirect URLs must be expanded first)
-- Reddit: `reddit.com/r/subreddit/comments/POST_ID/...` permalink (or `redd.it/POST_ID`)
-- Facebook: public `facebook.com/.../videos/VIDEO_ID`, `facebook.com/reel/VIDEO_ID`, or `facebook.com/watch/?v=VIDEO_ID`. Use full URLs, not `fb.watch` redirects.
+## Step 3 — Connect your website (public credentials only)
 
-**Playback caveats:** Content must be public and embeddable. YouTube may disable embedding; Facebook videos may require public-page access; Reddit embed presentation can vary and some posts may refuse iframe playback; TikTok embeds may be blocked by creators, region, or browsers. Every detail page includes **Open original** so viewers can still visit the platform when the player fails. This website does not download, rehost, or strip attribution from any videos.
+1. In the Supabase dashboard, find your **Project URL** and **Publishable key** under **Project Settings → API Keys** (menu names can vary).
+2. Open `assets/config.js` in your GitHub repo and click the pencil icon.
+3. Set:
 
-## Customize
+```js
+window.VIRALVAULT_CONFIG = {
+  supabaseUrl: 'https://YOUR-PROJECT.supabase.co',
+  supabaseAnonKey: 'sb_publishable_YOUR_PUBLIC_KEY',
+  formspreeEndpoint: ''
+};
+```
 
-- Site title / brand: `index.html`
-- Colors, layout, responsiveness: `assets/style.css`
-- Categories / sorting / URL parsing: `assets/app.js`
-- Curated video entries: `data/videos.json`
+**Never enter a secret key, `service_role` key, personal access token, or password here.** The publishable/legacy anon key is meant for frontend use. The RLS policies in `supabase/schema.sql` restrict access.
 
-Suggested starter content is sample video data. Replace it before sharing the site publicly. The "Top Picks" ranking is editorial (featured entries first), not live view counts or platform engagement statistics.
+4. Commit the edit and wait for GitHub Pages to deploy.
 
-## Security and moderation
+## Step 4 — Publish your first video
 
-- Video URL parser accepts only secure HTTPS video links from allowlisted domains.
-- Titles/descriptions are HTML-escaped. No raw user-supplied iframe markup is injected.
-- Public visitor submissions should be manually moderated for copyright, privacy, harassment, sensitive imagery, and platform rules.
-- Do not copy WorldStarHipHop branding, logos, or proprietary assets.
-- Never commit API keys or passwords into GitHub Pages: all frontend source is public.
+1. Go to **`https://kingh3nry187.github.io/viralvault/admin.html`** (substitute your username/repo if different).
+2. Sign in with your Supabase Auth owner email and password.
+3. Paste a **full** URL of a YouTube video, Reddit post, TikTok video, or **public** Facebook video.
+4. Enter the title and category, optionally add description and check **Feature this video**.
+5. Keep **Visibility = Published (live)** and click **Publish video**.
+6. Open your public homepage in a new tab and refresh. The video is now public without editing GitHub files.
+7. To hide a post, use **Unpublish**. To modify it, click **Edit**. To remove it permanently, click **Delete**.
 
-## Limitations
+**Supported URLs:**
+- YouTube: `https://www.youtube.com/watch?v=VIDEO_ID`, `youtu.be/VIDEO_ID`, Shorts.
+- TikTok: complete `https://www.tiktok.com/@username/video/VIDEO_ID` link (expand shortened links first).
+- Reddit: `https://www.reddit.com/r/subreddit/comments/POST_ID/...` or `redd.it/POST_ID`.
+- Facebook: public `https://www.facebook.com/.../videos/VIDEO_ID`, `facebook.com/reel/VIDEO_ID`, or `facebook.com/watch/?v=VIDEO_ID`.
 
-- No real-time trending analytics, view counts, account system, full moderation backend, or automatic discovery.
-- No global visitor submissions without configuring Formspree or another backend.
-- Locally added entries are device/browser-specific until exported and committed.
-- Search covers your curated entries, not entire YouTube / Reddit / TikTok / Facebook catalogs.
+## Visitor submissions (optional)
 
-MIT-style permission for original scaffold code: use and modify freely; third-party platform content and trademarks remain owned by their respective owners.
+Set `formspreeEndpoint` in `assets/config.js` to your **own Formspree form URL** if you want links from visitors sent to your inbox for review. Admins use `admin.html` for immediate publishing. Without Formspree, public submission form does not accept live-mode submissions.
+
+## Data migration from old version
+
+After Supabase is configured, the website reads the live `videos` table **instead of `data/videos.json`**. Old demo entries will no longer be shown. Re-add any videos you want to keep through the dashboard. Existing JSON data remains in the repository only as a fallback if Supabase has not been configured.
+
+## Security notes
+
+- The admin page HTML is publicly reachable, but actions are **protected by Supabase Auth and SQL RLS policies**. Hiding an admin link is not security.
+- The admin session is stored in the browser's `sessionStorage` and is cleared when the tab session ends or you log out. Avoid publishing on untrusted devices.
+- Keep Supabase's default allowed-origins/auth security settings appropriate for your deployment; use HTTPS on GitHub Pages.
+- All untrusted video titles and descriptions are escaped in HTML.
+- Third-party embeds can be unavailable because of privacy, region, consent, or platform restrictions. Visitors can use **Open original**.
+- Do not rehost copyrighted videos without permission or imply this website is affiliated with the original platforms or WorldStarHipHop.
+- A static page cannot hide a publishable Supabase key, but the RLS policies protect database writes. Never disable those policies.
+
+## Test locally
+
+Run `python -m http.server 8000` in this folder, then open `http://localhost:8000`. GitHub Pages HTTPS is recommended for actual deployment.
+
+## Folder structure
+
+```
+index.html               Public video browsing
+admin.html               Owner login and publishing dashboard
+assets/style.css         Public theme
+assets/admin.css         Dashboard styling
+assets/app.js            Public video cards and embeds
+assets/admin.js          Admin authentication and CRUD
+assets/config.js         Public Supabase URL/key and optional Formspree endpoint
+data/videos.json         Demo fallback before Supabase setup
+supabase/schema.sql      Database schema and access rules
+.github/workflows/       GitHub Pages deployment workflow
+.nojekyll                GitHub Pages static setting
+```
