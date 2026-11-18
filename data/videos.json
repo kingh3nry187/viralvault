@@ -1,0 +1,35 @@
+[
+  {
+    "id": "youtube-me-at-zoo",
+    "videoId": "jNQXAC9IVRw",
+    "platform": "YouTube",
+    "url": "https://www.youtube.com/watch?v=jNQXAC9IVRw",
+    "title": "Me at the zoo — the first YouTube video",
+    "description": "A piece of internet history: the first video ever uploaded to YouTube. Demo entry; replace it with your own curated content.",
+    "category": "Other",
+    "featured": true,
+    "addedAt": "2026-11-18T00:00:00.000Z"
+  },
+  {
+    "id": "youtube-gangnam-style",
+    "videoId": "9bZkp7q19f0",
+    "platform": "YouTube",
+    "url": "https://www.youtube.com/watch?v=9bZkp7q19f0",
+    "title": "PSY — GANGNAM STYLE (official music video)",
+    "description": "A globally viral music video. Demo entry; replace with your own clips.",
+    "category": "Hip-Hop",
+    "featured": true,
+    "addedAt": "2026-11-17T00:00:00.000Z"
+  },
+  {
+    "id": "youtube-youtube-api-demo",
+    "videoId": "M7lc1UVf-VE",
+    "platform": "YouTube",
+    "url": "https://www.youtube.com/watch?v=M7lc1UVf-VE",
+    "title": "YouTube embedded player demonstration",
+    "description": "An example video used in YouTube's official embed documentation. Demo entry.",
+    "category": "Gaming",
+    "featured": true,
+    "addedAt": "2026-11-16T00:00:00.000Z"
+  }
+]
